@@ -1,31 +1,29 @@
 name: swc-tfst-tf
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'swc/terraformstate/**'
+      - 'swc/tfstate_storage/**'
   pull_request:
     paths:
-      - 'swc/terraformstate/**'
+      - 'swc/tfstate_storage/**'
 
 permissions:
   id-token: write
   contents: read
 
 env:
-  # Tenant ID is hardcoded for all callers of this reusable workflow.
-  ARM_TENANT_ID: 9cdec346-9087-4758-a5a5-2144a3ed72d4
-
-  # Values that used to be caller-supplied workflow_call inputs.
-  TF_WORKING_DIRECTORY: swc/terraformstate
+  AZURE_TENANT_ID: 9cdec346-9087-4758-a5a5-2144a3ed72d4
+  TF_WORKING_DIRECTORY: swc/tfstate_storage
   TF_VERSION: 1.9.8
 
 jobs:
   tf-plan:
     name: 'Build and package'
     runs-on: ubuntu-latest
-    environment: prod-build
+    environment: tf-build
 
     steps:
     - name: Checkout
@@ -43,7 +41,7 @@ jobs:
       uses: Azure/login@v2
       with:
         client-id: ${{ secrets.AZURE_SPN_ID }}
-        tenant-id: ${{ env.ARM_TENANT_ID }}
+        tenant-id: ${{ env.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
     - uses: hashicorp/setup-terraform@v3
@@ -163,7 +161,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: checkov-checks
-    environment: prod-deploy
+    environment: tf-deploy
 
     steps:
     - name: Checkout
@@ -181,7 +179,7 @@ jobs:
       uses: Azure/login@v2
       with:
         client-id: ${{ secrets.AZURE_SPN_ID }}
-        tenant-id: ${{ env.ARM_TENANT_ID }}
+        tenant-id: ${{ env.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
     - uses: hashicorp/setup-terraform@v3
