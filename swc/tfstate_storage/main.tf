@@ -37,7 +37,7 @@ module "storage_account" {
 
   role_assignments = {
     storage_blob_data_owner = {
-      principal_id         = "a0dcc81a-54ee-4267-a4a0-399c937e8492"
+      principal_id         = "842b9417-8fb0-4de5-b951-27c5a4678162"
       role_definition_name = "Storage Blob Data Owner"
     }
   }
