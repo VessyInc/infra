@@ -14,9 +14,10 @@ terraform {
     client_id            = "a0dcc81a-54ee-4267-a4a0-399c937e8492"
     resource_group_name  = "rg-swc-vessyinc-tfstate"
     storage_account_name = "stswcvessyinctfstate"
-    container_name       = "terraformstate_storage"
-    key                  = "terraformstate_storage.tfstate"
+    container_name       = "tfstate-storage"
+    key                  = "tfstate-storage.tfstate"
     use_oidc             = true
+    use_azuread_auth     = true
   }
 }
 
