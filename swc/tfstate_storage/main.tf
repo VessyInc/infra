@@ -22,10 +22,12 @@ module "storage_account" {
   access_tier              = "Hot"
 
   min_tls_version                   = "TLS1_2"
+  default_to_oauth_authentication   = true
   https_traffic_only_enabled        = true
   public_network_access_enabled     = true
   shared_access_key_enabled         = false
   allow_nested_items_to_be_public   = false
+  allowed_copy_scope                = "AAD"
   infrastructure_encryption_enabled = true
 
   network_rules = {
@@ -35,7 +37,7 @@ module "storage_account" {
 
   role_assignments = {
     storage_blob_data_owner = {
-      principal_id         = data.azurerm_client_config.current.object_id
+      principal_id         = "a0dcc81a-54ee-4267-a4a0-399c937e8492"
       role_definition_name = "Storage Blob Data Owner"
     }
   }
