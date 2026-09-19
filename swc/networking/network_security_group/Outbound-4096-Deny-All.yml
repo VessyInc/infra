@@ -1,0 +1,13 @@
+Outbound-Deny-All:
+  priority: 4096
+  direction: Outbound
+  access: Deny
+  protocol: '*'
+  source_port_ranges: 
+    - '*'
+  source_address_prefixes:
+    - '*'
+  destination_port_ranges:
+    - '*'
+  destination_address_prefixes: 
+    - '*'
