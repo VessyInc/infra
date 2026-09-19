@@ -1,0 +1,209 @@
+name: swc-tfst-tf
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'swc/terraformstate/**'
+  pull_request:
+    paths:
+      - 'swc/terraformstate/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  # Tenant ID is hardcoded for all callers of this reusable workflow.
+  ARM_TENANT_ID: 9cdec346-9087-4758-a5a5-2144a3ed72d4
+
+  # Values that used to be caller-supplied workflow_call inputs.
+  TF_WORKING_DIRECTORY: swc/terraformstate
+  TF_VERSION: 1.9.8
+
+jobs:
+  tf-plan:
+    name: 'Build and package'
+    runs-on: ubuntu-latest
+    environment: prod-build
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup NodeJs(Terraform wrapper)
+      uses: actions/setup-node@v2
+      with:
+       node-version: 22.14.0
+
+    - name: Get Token for TF Module Repo
+      run: git config --global url."https://oauth2:${{ secrets.GH_REPO_PAT }}@github.com".insteadOf https://github.com
+
+    - name: az Login
+      uses: Azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_SPN_ID }}
+        tenant-id: ${{ env.ARM_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+
+    - name: Terraform Init
+      working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+      run: terraform init
+      env:
+        ARM_CLIENT_ID: ${{ secrets.AZURE_SPN_ID }}
+        ARM_USE_OIDC: true
+
+    - name: Terraform Format
+      working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+      run: terraform fmt -check
+      continue-on-error: true
+
+    - name: Fetch TFLint config
+      uses: actions/checkout@v4
+      with:
+        repository: VessyInc/modules
+        token: ${{ secrets.GH_REPO_PAT }}
+        sparse-checkout: terraform/.tflint.hcl
+        sparse-checkout-cone-mode: false
+        path: .tflint-config
+
+    - name: Setup TFLint
+      uses: terraform-linters/setup-tflint@v4
+
+    - name: TFLint Init
+      working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+      run: tflint --init --config=${{ github.workspace }}/.tflint-config/terraform/.tflint.hcl
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+
+    - name: Run TFLint
+      working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+      run: tflint --config=${{ github.workspace }}/.tflint-config/terraform/.tflint.hcl
+      continue-on-error: true
+
+    - name: Terraform Plan
+      working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+      run: terraform plan -input=false -out=${{ github.workspace }}/tfplan
+      env:
+        ARM_CLIENT_ID: ${{ secrets.AZURE_SPN_ID }}
+        ARM_USE_OIDC: true
+
+    - name: Publish Terraform Plan
+      uses: actions/upload-artifact@v4
+      with:
+        name: tfplan
+        path: '${{ github.workspace }}/tfplan'
+        if-no-files-found: error
+
+    - name: Convert Terraform Plan to JSON
+      working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+      run: terraform show -json ${{ github.workspace }}/tfplan > ${{ github.workspace }}/tfplan.json
+
+    - name: Install C3X
+      run: curl -fsSL https://c3x.dev/install.sh | sh
+
+    - name: C3X Cost Estimate
+      working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+      run: c3x estimate --path=.
+      continue-on-error: true
+
+  checkov-checks:
+    name: 'Checkov Security Scans'
+    runs-on: ubuntu-latest
+    needs: tf-plan
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup NodeJs(Terraform wrapper)
+      uses: actions/setup-node@v2
+      with:
+       node-version: 22.14.0
+
+    - name: Get Token for TF Module Repo
+      run: git config --global url."https://oauth2:${{ secrets.GH_REPO_PAT }}@github.com".insteadOf https://github.com
+
+    - uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+
+    - name: Download Terraform Plan
+      uses: actions/download-artifact@v4
+      with:
+        name: tfplan
+        path: ${{ github.workspace }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+
+    - name: Terraform Init (providers)
+      run: terraform -chdir="${{ env.TF_WORKING_DIRECTORY }}" init -input=false -backend=false
+      env:
+        ARM_CLIENT_ID: ${{ secrets.AZURE_SPN_ID }}
+        ARM_USE_OIDC: true
+
+    - name: Convert Terraform Plan to JSON
+      run: terraform -chdir="${{ env.TF_WORKING_DIRECTORY }}" show -json ${{ github.workspace }}/tfplan > ${{ github.workspace }}/tfplan.json
+
+    - name: Run Checkov on Terraform Plan
+      uses: bridgecrewio/checkov-action@v12
+      with:
+        file: tfplan.json
+        output_format: cli
+        soft_fail: true
+
+  tf-apply:
+    name: 'Deploy'
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: checkov-checks
+    environment: prod-deploy
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup NodeJs(Terraform wrapper)
+      uses: actions/setup-node@v2
+      with:
+       node-version: 22.14.0
+
+    - name: Get Token for TF Module Repo
+      run: git config --global url."https://oauth2:${{ secrets.GH_REPO_PAT }}@github.com".insteadOf https://github.com
+
+    - name: az Login
+      uses: Azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_SPN_ID }}
+        tenant-id: ${{ env.ARM_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+
+    - name: Terraform Init
+      working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+      run: terraform init
+      env:
+        ARM_CLIENT_ID: ${{ secrets.AZURE_SPN_ID }}
+        ARM_USE_OIDC: true
+
+    - name: Download Terraform Plan
+      uses: actions/download-artifact@v4
+      with:
+        name: tfplan
+        path: ${{ github.workspace }}
+
+    - name: Terraform Apply
+      working-directory: ${{ env.TF_WORKING_DIRECTORY }}
+      run: terraform apply -auto-approve ${{ github.workspace }}/tfplan
+      env:
+        ARM_CLIENT_ID: ${{ secrets.AZURE_SPN_ID }}
+        ARM_USE_OIDC: true
