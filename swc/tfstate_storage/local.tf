@@ -1,3 +1,4 @@
 locals {
-  common = yamldecode(file("${path.module}/../common.yml"))
+  common  = yamldecode(file("../common.yml"))
+  appname = "tfstate"
 }

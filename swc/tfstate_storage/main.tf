@@ -1,3 +1,5 @@
+data "azurerm_client_config" "current" {}
+
 module "resource_group" {
   source = "github.com/VessyInc/modules//azurerm-resource-group?ref=v4.0.0"
 
