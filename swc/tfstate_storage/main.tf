@@ -51,5 +51,13 @@ module "storage_account" {
       name                  = "networking"
       container_access_type = "private"
     }
+    aks = {
+      name                  = "aks"
+      container_access_type = "private"
+    }
+    app-gw = {
+      name                  = "app-gw"
+      container_access_type = "private"
+    }
   }
 }

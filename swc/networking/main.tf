@@ -17,8 +17,17 @@ module "virtual_network" {
 
   subnets = [
     {
-      name             = "aks"
+      name             = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-aks"
       address_prefixes = ["10.0.0.0/16"]
+    },
+    {
+      name             = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-aks-pe"
+      address_prefixes = ["10.1.0.0/16"]
+    }
+    ,
+    {
+      name             = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-app-gw"
+      address_prefixes = ["10.2.0.0/16"]
     }
   ]
 
