@@ -20,7 +20,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "aks" {
 }
 
 module "control_plane_identity" {
-  source = "github.com/VessyInc/modules//azurerm-user-assigned-identity?ref=v4.0.0"
+  source = "github.com/VessyInc/modules//azurerm-user-assigned-identity?ref=v4.0.1"
 
   name                = "uai-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-control-plane"
   location            = local.common.location
@@ -43,7 +43,7 @@ module "control_plane_identity" {
 }
 
 module "workload_identity" {
-  source = "github.com/VessyInc/modules//azurerm-user-assigned-identity?ref=v4.0.0"
+  source = "github.com/VessyInc/modules//azurerm-user-assigned-identity?ref=v4.0.1"
 
   name                = "uai-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-workload"
   location            = local.common.location
@@ -60,7 +60,7 @@ module "workload_identity" {
 }
 
 module "key_vault" {
-  source = "github.com/VessyInc/modules//azurerm-key-vault?ref=v4.0.0"
+  source = "github.com/VessyInc/modules//azurerm-key-vault?ref=v4.0.1"
 
   name = "kv-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}"
   #kv-swc-vessyinc-aks
@@ -120,8 +120,6 @@ module "aks" {
   support_plan              = "KubernetesOfficial"
   automatic_upgrade_channel = null
   node_os_upgrade_channel   = "NodeImage"
-  edge_zone                 = null
-  run_command_enabled       = true
 
   private_cluster_enabled             = true
   private_cluster_public_fqdn_enabled = false
@@ -169,11 +167,9 @@ module "aks" {
     ip_versions         = ["IPv4"]
   }
 
-  windows_profile   = null # no Windows node pools
-  http_proxy_config = null
-
   role_based_access_control_enabled = true
   local_account_disabled            = true
+  
   azure_active_directory_role_based_access_control = {
     admin_group_object_ids = ["26c170fc-3976-46be-95a7-dff9e9533455"]
     azure_rbac_enabled     = false
@@ -220,8 +216,6 @@ module "aks" {
 
   node_resource_group_role_assignments = {}
   role_assignments                     = {}
-  lock                                 = null
-  tags                                 = {}
 
   # wait for the control plane identity's Private DNS Zone Contributor role assignment
   # to exist (and its RBAC to propagate) before AKS tries to write records into the zone
