@@ -1,24 +1,11 @@
-data "azurerm_client_config" "current" {}
+module "resource_group" {
+  source = "github.com/VessyInc/modules//azurerm-resource-group?ref=v4.0.0"
 
-data "azurerm_subnet" "aks" {
-  name                 = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-aks"
-  virtual_network_name = "vnet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-networking"
-  resource_group_name  = "rg-${local.common.location_shortcode}-${local.common.uniqueidentifier}-networking"
+  name = "rg-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}"
+  #rg-swc-vessyinc-aks
+  location = local.common.location
 }
 
-data "azurerm_subnet" "aks_pe" {
-  name                 = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-aks-pe"
-  virtual_network_name = "vnet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-networking"
-  resource_group_name  = "rg-${local.common.location_shortcode}-${local.common.uniqueidentifier}-networking"
-}
-
-data "azurerm_virtual_network" "networking" {
-  name                = "vnet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-networking"
-  resource_group_name = "rg-${local.common.location_shortcode}-${local.common.uniqueidentifier}-networking"
-}
-
-# No azurerm-private-dns-zone module exists in VessyInc/modules yet - written inline
-# as a one-off exception (per user decision) rather than blocking on adding one.
 resource "azurerm_private_dns_zone" "aks" {
   name                = "privatelink.${local.common.location}.azmk8s.io"
   resource_group_name = module.resource_group.name
@@ -32,46 +19,36 @@ resource "azurerm_private_dns_zone_virtual_network_link" "aks" {
   registration_enabled  = false
 }
 
-module "resource_group" {
-  source = "github.com/VessyInc/modules//azurerm-resource-group?ref=v4.0.0"
-
-  name = "rg-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}"
-  #rg-swc-vessyinc-aks
-  location = local.common.location
-}
-
 module "control_plane_identity" {
   source = "github.com/VessyInc/modules//azurerm-user-assigned-identity?ref=v4.0.0"
 
-  name                = "id-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-control-plane"
+  name                = "uai-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-control-plane"
   location            = local.common.location
   resource_group_name = module.resource_group.name
 
   federated_identity_credentials = {}
 
-  # bring-your-own subnet + userDefinedRouting - the control plane identity needs
-  # this to manage NICs/LBs and the route table association on the aks subnet
   role_assignments = {
     network_contributor = {
-      scope                = data.azurerm_subnet.aks.id
-      role_definition_name = "Network Contributor"
+      scope                            = data.azurerm_subnet.aks.id
+      role_definition_name             = "Network Contributor"
+      skip_service_principal_aad_check = false
     }
     private_dns_zone_contributor = {
-      scope                = azurerm_private_dns_zone.aks.id
-      role_definition_name = "Private DNS Zone Contributor"
+      scope                            = azurerm_private_dns_zone.aks.id
+      role_definition_name             = "Private DNS Zone Contributor"
+      skip_service_principal_aad_check = false
     }
   }
-
-  tags = {}
 }
 
 module "workload_identity" {
   source = "github.com/VessyInc/modules//azurerm-user-assigned-identity?ref=v4.0.0"
 
-  name                = "id-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-workload"
+  name                = "uai-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-workload"
   location            = local.common.location
   resource_group_name = module.resource_group.name
-
+  role_assignments    = {}
   # add one entry per workload once a real namespace/service account exists, e.g.:
   # app = {
   #   issuer   = module.aks.oidc_issuer_url
@@ -80,9 +57,6 @@ module "workload_identity" {
   #   name     = "app"
   # }
   federated_identity_credentials = {}
-
-  role_assignments = {}
-  tags             = {}
 }
 
 module "key_vault" {
@@ -96,7 +70,7 @@ module "key_vault" {
 
   sku_name                        = "standard"
   rbac_authorization_enabled      = true
-  access_policies                 = {} # unused - rbac_authorization_enabled handles data-plane auth
+  access_policies                 = {}
   purge_protection_enabled        = true
   soft_delete_retention_days      = 90
   public_network_access_enabled   = false
