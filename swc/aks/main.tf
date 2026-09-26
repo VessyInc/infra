@@ -20,7 +20,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "aks" {
 }
 
 module "control_plane_identity" {
-  source = "github.com/VessyInc/modules//azurerm-user-assigned-identity?ref=v4.0.1"
+  source = "github.com/VessyInc/modules//azurerm-user-assigned-identity?ref=v4.0.3"
 
   name                = "uai-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-control-plane"
   location            = local.common.location
@@ -43,7 +43,7 @@ module "control_plane_identity" {
 }
 
 module "workload_identity" {
-  source = "github.com/VessyInc/modules//azurerm-user-assigned-identity?ref=v4.0.1"
+  source = "github.com/VessyInc/modules//azurerm-user-assigned-identity?ref=v4.0.3"
 
   name                = "uai-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-workload"
   location            = local.common.location
@@ -60,7 +60,7 @@ module "workload_identity" {
 }
 
 module "key_vault" {
-  source = "github.com/VessyInc/modules//azurerm-key-vault?ref=v4.0.1"
+  source = "github.com/VessyInc/modules//azurerm-key-vault?ref=v4.0.2"
 
   name = "kv-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}"
   #kv-swc-vessyinc-aks
@@ -107,7 +107,7 @@ module "key_vault" {
 }
 
 module "aks" {
-  source = "github.com/VessyInc/modules//azurerm-kubernetes-cluster?ref=v4.0.0"
+  source = "github.com/VessyInc/modules//azurerm-kubernetes-cluster?ref=v4.0.2"
 
   name                = "aks-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}"
   location            = local.common.location
