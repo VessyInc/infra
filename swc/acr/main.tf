@@ -16,3 +16,11 @@ resource "azurerm_container_registry" "acr" {
   admin_enabled                 = false
   public_network_access_enabled = true
 }
+
+resource "azurerm_role_assignment" "acr" {
+  for_each = toset(["AcrPush", "AcrPull", "AcrDelete"])
+
+  scope                = azurerm_container_registry.acr.id
+  role_definition_name = each.value
+  principal_id         = "842b9417-8fb0-4de5-b951-27c5a4678162"
+}
