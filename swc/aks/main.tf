@@ -134,7 +134,6 @@ module "aks" {
     name                         = "system"
     vm_size                      = "Standard_B2s"
     vnet_subnet_id               = data.azurerm_subnet.aks.id
-    zones                        = ["1", "2", "3"]
     auto_scaling_enabled         = true
     min_count                    = 1
     max_count                    = 2
