@@ -21,6 +21,11 @@ module "control_plane_identity" {
       role_definition_name             = "Network Contributor"
       skip_service_principal_aad_check = false
     }
+    private_dns_zone_reader = {
+      scope                            = data.azurerm_private_dns_zone.aks.id
+      role_definition_name             = "Reader"
+      skip_service_principal_aad_check = false
+    }
     private_dns_zone_contributor = {
       scope                            = data.azurerm_private_dns_zone.aks.id
       role_definition_name             = "Private DNS Zone Contributor"
