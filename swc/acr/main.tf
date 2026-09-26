@@ -6,7 +6,6 @@ module "resource_group" {
   location = local.common.location
 }
 
-# no azurerm-container-registry module exists in VessyInc/modules yet - swap to it once one does
 resource "azurerm_container_registry" "acr" {
   name = "${local.appname}${local.common.location_shortcode}${local.common.uniqueidentifier}"
   #acrswcvessyinc
