@@ -59,5 +59,21 @@ module "storage_account" {
       name                  = "app-gw"
       container_access_type = "private"
     }
+    acr = {
+      name                  = "acr"
+      container_access_type = "private"
+    }
+    aci = {
+      name                  = "aci"
+      container_access_type = "private"
+    }
+    dns-private-zones = {
+      name                  = "dns-private-zones"
+      container_access_type = "private"
+    }
+    dns-private-zones = {
+      name                  = "dns-private-zones"
+      container_access_type = "private"
+    }
   }
 }

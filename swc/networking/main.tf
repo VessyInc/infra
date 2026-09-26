@@ -28,6 +28,14 @@ module "virtual_network" {
     {
       name             = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-app-gw"
       address_prefixes = ["10.2.0.0/16"]
+    },
+    {
+      name             = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-aci"
+      address_prefixes = ["10.3.0.0/16"]
+      delegation = {
+        service_name = "Microsoft.ContainerInstance/containerGroups"
+        actions      = ["Microsoft.Network/virtualNetworks/subnets/action"]
+      }
     }
   ]
 

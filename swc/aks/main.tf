@@ -6,19 +6,6 @@ module "resource_group" {
   location = local.common.location
 }
 
-resource "azurerm_private_dns_zone" "aks" {
-  name                = "privatelink.${local.common.location}.azmk8s.io"
-  resource_group_name = module.resource_group.name
-}
-
-resource "azurerm_private_dns_zone_virtual_network_link" "aks" {
-  name                  = "vnl-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}"
-  resource_group_name   = module.resource_group.name
-  private_dns_zone_name = azurerm_private_dns_zone.aks.name
-  virtual_network_id    = data.azurerm_virtual_network.networking.id
-  registration_enabled  = false
-}
-
 module "control_plane_identity" {
   source = "github.com/VessyInc/modules//azurerm-user-assigned-identity?ref=v4.0.3"
 
@@ -35,7 +22,7 @@ module "control_plane_identity" {
       skip_service_principal_aad_check = false
     }
     private_dns_zone_contributor = {
-      scope                            = azurerm_private_dns_zone.aks.id
+      scope                            = data.azurerm_private_dns_zone.aks.id
       role_definition_name             = "Private DNS Zone Contributor"
       skip_service_principal_aad_check = false
     }
@@ -123,7 +110,7 @@ module "aks" {
 
   private_cluster_enabled             = true
   private_cluster_public_fqdn_enabled = false
-  private_dns_zone_id                 = azurerm_private_dns_zone.aks.id
+  private_dns_zone_id                 = data.azurerm_private_dns_zone.aks.id
 
   identity = {
     type         = "UserAssigned"

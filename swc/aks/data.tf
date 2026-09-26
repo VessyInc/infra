@@ -16,3 +16,8 @@ data "azurerm_virtual_network" "networking" {
   name                = "vnet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-networking"
   resource_group_name = "rg-${local.common.location_shortcode}-${local.common.uniqueidentifier}-networking"
 }
+
+data "azurerm_private_dns_zone" "aks" {
+  name                = "privatelink.${local.common.location}.azmk8s.io"
+  resource_group_name = "rg-${local.common.location_shortcode}-${local.common.uniqueidentifier}-networking"
+}
