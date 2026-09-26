@@ -40,7 +40,6 @@ module "workload_identity" {
   name                = "uai-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-workload"
   location            = local.common.location
   resource_group_name = module.resource_group.name
-  role_assignments    = {}
   # add one entry per workload once a real namespace/service account exists, e.g.:
   # app = {
   #   issuer   = module.aks.oidc_issuer_url
@@ -91,7 +90,11 @@ module "key_vault" {
 
   # pods reach Key Vault through this identity via workload identity federation
   role_assignments = {
-    workload_identity = {
+    workload_identity_kv_reader = {
+      principal_id         = module.workload_identity.principal_id
+      role_definition_name = "Reader"
+    }
+    workload_identity_kv_secrets_user = {
       principal_id         = module.workload_identity.principal_id
       role_definition_name = "Key Vault Secrets User"
     }
