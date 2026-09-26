@@ -132,7 +132,7 @@ module "aks" {
 
   default_node_pool = {
     name                         = "system"
-    vm_size                      = "Standard_B2s"
+    vm_size                      = "Standard_B2s_v2"
     vnet_subnet_id               = data.azurerm_subnet.aks.id
     auto_scaling_enabled         = true
     min_count                    = 1
