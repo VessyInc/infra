@@ -10,7 +10,7 @@ module "key_vault" {
   source = "github.com/VessyInc/modules//azurerm-key-vault?ref=v4.0.2"
 
   name = "kv${local.common.location_shortcode}${local.common.uniqueidentifier}${local.appname}"
-  #kvswcvessyinccentralkv
+  #kvswcvessyinccentral-kv
   location            = local.common.location
   resource_group_name = module.resource_group.name
   tenant_id           = data.azurerm_client_config.current.tenant_id
