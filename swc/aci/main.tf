@@ -58,6 +58,20 @@ module "container_group" {
       secure_environment_variables = {
         TUNNEL_TOKEN = data.azurerm_key_vault_secret.cloudflared_tunnel_token.value
       }
+      
+      ports = {
+        https = {
+          port     = 443
+          protocol = "TCP"
+        }
+      }
+    }
+  }
+
+  exposed_ports = {
+    https = {
+      port     = 443
+      protocol = "TCP"
     }
   }
 
