@@ -21,7 +21,7 @@ module "virtual_network" {
       address_prefixes = ["10.0.0.0/16"]
     },
     {
-      name             = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-aks-pe"
+      name             = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-central-kv"
       address_prefixes = ["10.1.0.0/16"]
     }
     ,

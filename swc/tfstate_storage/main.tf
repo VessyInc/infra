@@ -71,8 +71,8 @@ module "storage_account" {
       name                  = "dns-private-zones"
       container_access_type = "private"
     }
-    dns-private-zones = {
-      name                  = "dns-private-zones"
+    central-kv = {
+      name                  = "central-kv"
       container_access_type = "private"
     }
   }

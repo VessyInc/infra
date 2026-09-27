@@ -50,55 +50,18 @@ module "workload_identity" {
   federated_identity_credentials = {}
 }
 
-module "key_vault" {
-  source = "github.com/VessyInc/modules//azurerm-key-vault?ref=v4.0.2"
+# Key Vault lives in the dedicated swc/central-kv stack; pods reach it through
+# this identity via workload identity federation
+resource "azurerm_role_assignment" "workload_identity_kv_reader" {
+  scope                = data.azurerm_key_vault.central_kv.id
+  role_definition_name = "Reader"
+  principal_id         = module.workload_identity.principal_id
+}
 
-  name = "kv-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}"
-  #kv-swc-vessyinc-aks
-  location            = local.common.location
-  resource_group_name = module.resource_group.name
-  tenant_id           = data.azurerm_client_config.current.tenant_id
-
-  sku_name                        = "standard"
-  rbac_authorization_enabled      = true
-  access_policies                 = {}
-  purge_protection_enabled        = true
-  soft_delete_retention_days      = 90
-  public_network_access_enabled   = false
-  enabled_for_deployment          = false
-  enabled_for_disk_encryption     = false
-  enabled_for_template_deployment = false
-
-  network_acls = {
-    bypass         = "AzureServices"
-    default_action = "Deny"
-  }
-
-  # private endpoint sits in the dedicated PE subnet - no private DNS zone module
-  # exists in this repo yet, so DNS resolution to the private IP isn't wired up
-  private_endpoints = {
-    kv = {
-      name      = "pe-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-kv"
-      subnet_id = data.azurerm_subnet.aks_pe.id
-      private_service_connection = {
-        is_manual_connection = false
-        name                 = "psc-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-kv"
-        subresource_names    = ["vault"]
-      }
-    }
-  }
-
-  # pods reach Key Vault through this identity via workload identity federation
-  role_assignments = {
-    workload_identity_kv_reader = {
-      principal_id         = module.workload_identity.principal_id
-      role_definition_name = "Reader"
-    }
-    workload_identity_kv_secrets_user = {
-      principal_id         = module.workload_identity.principal_id
-      role_definition_name = "Key Vault Secrets User"
-    }
-  }
+resource "azurerm_role_assignment" "workload_identity_kv_secrets_user" {
+  scope                = data.azurerm_key_vault.central_kv.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = module.workload_identity.principal_id
 }
 
 module "aks" {
