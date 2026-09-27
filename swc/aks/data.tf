@@ -17,6 +17,6 @@ data "azurerm_private_dns_zone" "aks" {
 }
 
 data "azurerm_key_vault" "central_kv" {
-  name                = "kv-${local.common.location_shortcode}-${local.common.uniqueidentifier}-central-kv"
+  name                = "kv${local.common.location_shortcode}${local.common.uniqueidentifier}centralkv"
   resource_group_name = "rg-${local.common.location_shortcode}-${local.common.uniqueidentifier}-central-kv"
 }
