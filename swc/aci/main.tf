@@ -49,25 +49,15 @@ module "container_group" {
     }
   }
 
-  # placeholder workload - replace with an image from the ACR
   containers = {
-    app = {
-      image  = "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
+    cloudflared = {
+      image  = "${data.azurerm_container_registry.acr.login_server}/cloudflaredtunnel:latest"
       cpu    = 1
       memory = 1.5
-      ports = {
-        https = {
-          port     = 443
-          protocol = "TCP"
-        }
-      }
-    }
-  }
 
-  exposed_ports = {
-    https = {
-      port     = 443
-      protocol = "TCP"
+      secure_environment_variables = {
+        TUNNEL_TOKEN = data.azurerm_key_vault_secret.cloudflared_tunnel_token.value
+      }
     }
   }
 
