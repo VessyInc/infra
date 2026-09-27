@@ -55,10 +55,12 @@ module "container_group" {
       cpu    = 1
       memory = 1.5
 
+      commands = ["/usr/local/bin/cloudflared", "tunnel", "--loglevel", "debug", "--no-autoupdate", "run"]
+
       secure_environment_variables = {
         TUNNEL_TOKEN = data.azurerm_key_vault_secret.cloudflared_tunnel_token.value
       }
-      
+
       ports = {
         https = {
           port     = 443
