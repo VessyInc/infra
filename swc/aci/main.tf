@@ -26,7 +26,7 @@ module "identity" {
 }
 
 module "container_group" {
-  source = "github.com/VessyInc/modules//azurerm-container-group?ref=v4.0.3"
+  source = "github.com/VessyInc/modules//azurerm-container-group?ref=v4.0.4"
 
   name                = "ci-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}"
   location            = local.common.location
