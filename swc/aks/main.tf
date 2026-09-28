@@ -48,20 +48,31 @@ module "workload_identity" {
   #   name     = "app"
   # }
   federated_identity_credentials = {}
+
+  # Key Vault lives in the dedicated swc/central-kv stack; pods reach it through
+  # this identity via workload identity federation
+  role_assignments = {
+    kv_reader = {
+      scope                            = data.azurerm_key_vault.central_kv.id
+      role_definition_name             = "Reader"
+      skip_service_principal_aad_check = false
+    }
+    kv_secrets_user = {
+      scope                            = data.azurerm_key_vault.central_kv.id
+      role_definition_name             = "Key Vault Secrets User"
+      skip_service_principal_aad_check = false
+    }
+  }
 }
 
-# Key Vault lives in the dedicated swc/central-kv stack; pods reach it through
-# this identity via workload identity federation
-resource "azurerm_role_assignment" "workload_identity_kv_reader" {
-  scope                = data.azurerm_key_vault.central_kv.id
-  role_definition_name = "Reader"
-  principal_id         = module.workload_identity.principal_id
+moved {
+  from = azurerm_role_assignment.workload_identity_kv_reader
+  to   = module.workload_identity.azurerm_role_assignment.this["kv_reader"]
 }
 
-resource "azurerm_role_assignment" "workload_identity_kv_secrets_user" {
-  scope                = data.azurerm_key_vault.central_kv.id
-  role_definition_name = "Key Vault Secrets User"
-  principal_id         = module.workload_identity.principal_id
+moved {
+  from = azurerm_role_assignment.workload_identity_kv_secrets_user
+  to   = module.workload_identity.azurerm_role_assignment.this["kv_secrets_user"]
 }
 
 module "aks" {
@@ -197,3 +208,16 @@ module "aks" {
   # to exist (and its RBAC to propagate) before AKS tries to write records into the zone
   depends_on = [module.control_plane_identity]
 }
+
+module "workload_uais" {
+  source   = "github.com/VessyInc/modules//azurerm-user-assigned-identity?ref=v4.0.3"
+  for_each = local.workload_uais
+
+  name                = "uai-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-${each.key}"
+  location            = local.common.location
+  resource_group_name = module.resource_group.name
+
+  federated_identity_credentials = each.value.federated_identity_credentials
+  role_assignments               = each.value.role_assignments
+}
+
