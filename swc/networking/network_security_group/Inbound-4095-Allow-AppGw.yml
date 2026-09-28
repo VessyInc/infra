@@ -6,7 +6,7 @@ Inbound-Allow-AppGW:
   source_port_ranges: 
     - '*'
   source_address_prefixes:
-    - '*'
+    - 'Internet'
   destination_port_ranges:
     # - '443'
     - '65200-65535'
