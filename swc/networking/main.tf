@@ -30,6 +30,10 @@ module "virtual_network" {
       name                            = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-app-gw"
       address_prefixes                = ["10.2.0.0/16"]
       default_outbound_access_enabled = true
+      delegation = {
+        service_name = "Microsoft.Network/applicationGateways"
+        actions      = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+      }
     },
     {
       name                            = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-aci"
