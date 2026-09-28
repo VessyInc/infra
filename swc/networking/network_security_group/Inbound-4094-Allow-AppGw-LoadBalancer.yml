@@ -6,8 +6,8 @@ Inbound-Allow-AppGw-Internet-Https:
   source_port_ranges:
     - '*'
   source_address_prefixes:
-    - 'Internet'
+    - 'AzureLoadBalancer'
   destination_port_ranges:
-    - '443'
+    - '*'
   destination_address_prefixes:
     - '10.2.0.0/16'
