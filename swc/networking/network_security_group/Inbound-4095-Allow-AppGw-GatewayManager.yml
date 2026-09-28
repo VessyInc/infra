@@ -1,14 +1,13 @@
-Inbound-Allow-AppGW:
+Inbound-Allow-AppGw-GatewayManager:
   priority: 4095
   direction: Inbound
   access: Allow
   protocol: '*'
-  source_port_ranges: 
+  source_port_ranges:
     - '*'
   source_address_prefixes:
-    - 'Internet'
+    - 'GatewayManager'
   destination_port_ranges:
-    # - '443'
     - '65200-65535'
-  destination_address_prefixes: 
+  destination_address_prefixes:
     - '10.2.0.0/16'

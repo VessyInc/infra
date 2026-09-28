@@ -1,0 +1,13 @@
+Inbound-Allow-AppGw-Internet-Https:
+  priority: 4094
+  direction: Inbound
+  access: Allow
+  protocol: Tcp
+  source_port_ranges:
+    - '*'
+  source_address_prefixes:
+    - 'Internet'
+  destination_port_ranges:
+    - '443'
+  destination_address_prefixes:
+    - '10.2.0.0/16'
