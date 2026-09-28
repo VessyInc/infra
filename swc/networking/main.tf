@@ -27,8 +27,9 @@ module "virtual_network" {
     }
     ,
     {
-      name             = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-app-gw"
-      address_prefixes = ["10.2.0.0/16"]
+      name                            = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-app-gw"
+      address_prefixes                = ["10.2.0.0/16"]
+      default_outbound_access_enabled = true
     },
     {
       name                            = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-aci"

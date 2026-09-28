@@ -1,4 +1,4 @@
-Inbound-Allow-AppGw-Internet-Https:
+Inbound-Allow-AppGw-LoadBalancer:
   priority: 4094
   direction: Inbound
   access: Allow
@@ -10,4 +10,4 @@ Inbound-Allow-AppGw-Internet-Https:
   destination_port_ranges:
     - '*'
   destination_address_prefixes:
-    - '10.2.0.0/16'
+    - '*'
