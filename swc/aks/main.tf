@@ -109,7 +109,26 @@ module "aks" {
     }
   }
 
-  node_pools = {} # no additional (user) node pools yet
+  node_pools = {
+    worker001 = {
+        name                 = "worker001"
+        mode                 = "User"
+        vm_size              = "Standard_B2s_v2"
+        os_type              = "Linux"
+        os_sku               = "AzureLinux"
+        os_disk_type         = "Managed"
+        auto_scaling_enabled = true
+        min_count            = 1
+        max_count            = 2
+        max_pods             = 110
+        vnet_subnet_id       = data.azurerm_subnet.aks.id
+        temporary_name_for_rotation = "worker001tmp" 
+
+        upgrade_settings = {
+          max_surge = "50%"
+        }
+      }
+  }
 
   network_profile = {
     network_plugin      = "azure"
