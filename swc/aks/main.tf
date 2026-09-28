@@ -66,7 +66,7 @@ module "workload_identity" {
 }
 
 module "aks" {
-  source = "github.com/VessyInc/modules//azurerm-kubernetes-cluster?ref=v4.0.2"
+  source = "github.com/VessyInc/modules//azurerm-kubernetes-cluster?ref=v4.0.5"
 
   name                = "aks-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}"
   location            = local.common.location
@@ -190,6 +190,13 @@ module "aks" {
   }
 
   auto_scaler_profile = null
+
+  # Azure sets this itself once a cluster exists on an automatic_upgrade_channel;
+  # declared explicitly here to match live state instead of drifting every plan.
+  # Note: once set, this can't be removed from the config again.
+  upgrade_override = {
+    force_upgrade_enabled = false
+  }
 
   node_resource_group_role_assignments = {}
   role_assignments                     = {}
