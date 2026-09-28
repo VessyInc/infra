@@ -191,9 +191,6 @@ module "aks" {
 
   auto_scaler_profile = null
 
-  # Azure sets this itself once a cluster exists on an automatic_upgrade_channel;
-  # declared explicitly here to match live state instead of drifting every plan.
-  # Note: once set, this can't be removed from the config again.
   upgrade_override = {
     force_upgrade_enabled = false
   }
@@ -201,8 +198,6 @@ module "aks" {
   node_resource_group_role_assignments = {}
   role_assignments                     = {}
 
-  # wait for the control plane identity's Private DNS Zone Contributor role assignment
-  # to exist (and its RBAC to propagate) before AKS tries to write records into the zone
   depends_on = [module.control_plane_identity]
 }
 
