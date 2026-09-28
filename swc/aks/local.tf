@@ -22,24 +22,23 @@ locals {
   #     }
   #   }
   # }
-  workload_uais = {}
-  # workload_uais = {
-  #   argocd = {
-  #     federated_identity_credentials = {
-  #       argocd = {
-  #         issuer   = module.aks.oidc_issuer_url
-  #         subject  = "system:serviceaccount:argocd:argocd-application-controller"
-  #         audience = ["api://AzureADTokenExchange"]
-  #         name     = "argocd"
-  #       }
-  #     }
-  #     role_assignments = {
-  #       acr_pull = {
-  #         scope                            = data.azurerm_container_registry.acr.id
-  #         role_definition_name             = "AcrPull"
-  #         skip_service_principal_aad_check = false
-  #       }
-  #     }
-  #   }
-  # }
+  workload_uais = {
+    argocd = {
+      federated_identity_credentials = {
+        argocd = {
+          issuer   = module.aks.oidc_issuer_url
+          subject  = "system:serviceaccount:argocd:argocd-application-controller"
+          audience = ["api://AzureADTokenExchange"]
+          name     = "argocd"
+        }
+      }
+      role_assignments = {
+        acr_pull = {
+          scope                            = data.azurerm_container_registry.acr.id
+          role_definition_name             = "AcrPull"
+          skip_service_principal_aad_check = false
+        }
+      }
+    }
+  }
 }

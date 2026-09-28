@@ -65,16 +65,6 @@ module "workload_identity" {
   }
 }
 
-moved {
-  from = azurerm_role_assignment.workload_identity_kv_reader
-  to   = module.workload_identity.azurerm_role_assignment.this["kv_reader"]
-}
-
-moved {
-  from = azurerm_role_assignment.workload_identity_kv_secrets_user
-  to   = module.workload_identity.azurerm_role_assignment.this["kv_secrets_user"]
-}
-
 module "aks" {
   source = "github.com/VessyInc/modules//azurerm-kubernetes-cluster?ref=v4.0.2"
 
