@@ -76,7 +76,7 @@ module "aks" {
 
   sku_tier                  = "Free"
   support_plan              = "KubernetesOfficial"
-  automatic_upgrade_channel = null
+  automatic_upgrade_channel = "stable"
   node_os_upgrade_channel   = "NodeImage"
 
   private_cluster_enabled             = true
