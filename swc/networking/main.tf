@@ -7,7 +7,7 @@ module "resource_group" {
 }
 
 module "virtual_network" {
-  source = "github.com/VessyInc/modules//azurerm-virtual-network?ref=v4.0.0"
+  source = "github.com/VessyInc/modules//azurerm-virtual-network?ref=v4.0.6"
 
   name                = "vnet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}"
   resource_group_name = module.resource_group.name
@@ -17,8 +17,9 @@ module "virtual_network" {
 
   subnets = [
     {
-      name             = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-aks"
-      address_prefixes = ["10.0.0.0/16"]
+      name                            = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-aks"
+      address_prefixes                = ["10.0.0.0/16"]
+      default_outbound_access_enabled = true
     },
     {
       name             = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-central-kv"
@@ -30,8 +31,9 @@ module "virtual_network" {
       address_prefixes = ["10.2.0.0/16"]
     },
     {
-      name             = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-aci"
-      address_prefixes = ["10.3.0.0/16"]
+      name                            = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-aci"
+      address_prefixes                = ["10.3.0.0/16"]
+      default_outbound_access_enabled = true
       delegation = {
         service_name = "Microsoft.ContainerInstance/containerGroups"
         actions      = ["Microsoft.Network/virtualNetworks/subnets/action"]
