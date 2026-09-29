@@ -101,15 +101,11 @@ resource "azurerm_application_gateway" "this" {
     port = 443
   }
 
-  # Cloudflare Origin CA cert for argocd.vessyinc.com, imported into central_kv
-  # as the "argocd-tls" certificate. module.cert_identity has Key Vault Secrets
-  # User on central_kv to read it at runtime.
   ssl_certificate {
     name                = "cert-app-gw-tls"
     key_vault_secret_id = data.azurerm_key_vault_certificate.argocd_tls.secret_id
   }
 
-  # placeholder backend - point this at the real backend once one exists
   backend_address_pool {
     name = "default"
   }

@@ -10,6 +10,6 @@ data "azurerm_key_vault" "central_kv" {
 }
 
 data "azurerm_key_vault_certificate" "argocd_tls" {
-  name         = "argocd-tls"
+  name         = "tls-argocd"
   key_vault_id = data.azurerm_key_vault.central_kv.id
 }
