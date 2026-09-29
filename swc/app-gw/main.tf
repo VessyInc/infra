@@ -6,25 +6,6 @@ module "resource_group" {
   location = local.common.location
 }
 
-module "cert_identity" {
-  source = "github.com/VessyInc/modules//azurerm-user-assigned-identity?ref=v4.0.3"
-
-  name                = "uai-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-cert"
-  location            = local.common.location
-  resource_group_name = module.resource_group.name
-
-  federated_identity_credentials = {}
-
-  # lets the Application Gateway read TLS certificates stored as Key Vault secrets
-  role_assignments = {
-    kv_secrets_user = {
-      scope                            = data.azurerm_key_vault.central_kv.id
-      role_definition_name             = "Key Vault Secrets User"
-      skip_service_principal_aad_check = false
-    }
-  }
-}
-
 resource "azurerm_public_ip" "app_gw" {
   name                = "pip-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}"
   #pip-swc-vessyinc-app-gw
@@ -35,48 +16,18 @@ resource "azurerm_public_ip" "app_gw" {
   sku               = "Standard"
 }
 
-resource "azurerm_web_application_firewall_policy" "app_gw" {
-  name                = "waf-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}"
-  #waf-swc-vessyinc-app-gw
-  resource_group_name = module.resource_group.name
-  location            = local.common.location
-
-  policy_settings {
-    enabled = true
-    mode    = "Prevention"
-  }
-
-  managed_rules {
-    managed_rule_set {
-      type    = "OWASP"
-      version = "3.2"
-    }
-  }
-}
-
 resource "azurerm_application_gateway" "this" {
   name                = "agw-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}"
   #agw-swc-vessyinc-app-gw
   resource_group_name = module.resource_group.name
   location            = local.common.location
 
-  firewall_policy_id = azurerm_web_application_firewall_policy.app_gw.id
-
-  # WAF_v2 is required to attach a Web Application Firewall Policy - Basic/Standard_v2
-  # don't support one, so this isn't the cheapest tier despite the WAF policy above
+  # Basic is the cheapest tier - it doesn't support a WAF policy, autoscaling,
+  # or zones, so it's fixed at a single instance
   sku {
-    name = "WAF_v2"
-    tier = "WAF_v2"
-  }
-
-  autoscale_configuration {
-    min_capacity = 1
-    max_capacity = 2
-  }
-
-  identity {
-    type         = "UserAssigned"
-    identity_ids = [module.cert_identity.id]
+    name     = "Basic"
+    tier     = "Basic"
+    capacity = 1
   }
 
   gateway_ip_configuration {
@@ -102,8 +53,9 @@ resource "azurerm_application_gateway" "this" {
   }
 
   ssl_certificate {
-    name                = "cert-app-gw-tls"
-    key_vault_secret_id = data.azurerm_key_vault_certificate.argocd_tls.secret_id
+    name     = "cert-app-gw-tls"
+    data     = data.azurerm_key_vault_secret.argocd_tls_pfx.value
+    password = data.azurerm_key_vault_secret.argocd_tls_pfx_password.value
   }
 
   backend_address_pool {
@@ -135,6 +87,4 @@ resource "azurerm_application_gateway" "this" {
     backend_http_settings_name = "https-settings"
     priority                   = 100
   }
-
-  depends_on = [module.cert_identity]
 }
