@@ -53,7 +53,7 @@ resource "azurerm_application_gateway" "this" {
   }
 
   ssl_certificate {
-    name     = "cert-app-gw-tls"
+    name     = "argo-app-gw-tls"
     data     = data.azurerm_key_vault_secret.argocd_tls_pfx.value
     password = data.azurerm_key_vault_secret.argocd_tls_pfx_password.value
   }
