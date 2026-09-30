@@ -32,8 +32,26 @@ module "control_plane_identity" {
       skip_service_principal_aad_check = false
     }
     kubelet_identity_operator = {
-      scope                            = module.workload_uais["kubelet"].id
+      scope                            = module.kubelet_identity.id
       role_definition_name             = "Managed Identity Operator"
+      skip_service_principal_aad_check = true
+    }
+  }
+}
+
+module "kubelet_identity" {
+  source = "github.com/VessyInc/modules//azurerm-user-assigned-identity?ref=v4.0.3"
+
+  name                = "uai-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-kubelet"
+  location            = local.common.location
+  resource_group_name = module.resource_group.name
+
+  federated_identity_credentials = {}
+
+  role_assignments = {
+    acr_pull = {
+      scope                            = data.azurerm_container_registry.acr.id
+      role_definition_name             = "AcrPull"
       skip_service_principal_aad_check = true
     }
   }
@@ -76,9 +94,9 @@ module "aks" {
   }
 
   kubelet_identity = {
-    client_id                 = module.workload_uais["kubelet"].client_id
-    object_id                 = module.workload_uais["kubelet"].principal_id
-    user_assigned_identity_id = module.workload_uais["kubelet"].id
+    client_id                 = module.kubelet_identity.client_id
+    object_id                 = module.kubelet_identity.principal_id
+    user_assigned_identity_id = module.kubelet_identity.id
   }
 
   default_node_pool = {
@@ -196,14 +214,4 @@ module "aks" {
 moved {
   from = azurerm_role_assignment.control_plane_can_use_kubelet_identity
   to   = module.control_plane_identity.azurerm_role_assignment.this["kubelet_identity_operator"]
-}
-
-moved {
-  from = module.kubelet_identity.azurerm_user_assigned_identity.this
-  to   = module.workload_uais["kubelet"].azurerm_user_assigned_identity.this
-}
-
-moved {
-  from = module.kubelet_identity.azurerm_role_assignment.this["acr_pull"]
-  to   = module.workload_uais["kubelet"].azurerm_role_assignment.this["acr_pull"]
 }
