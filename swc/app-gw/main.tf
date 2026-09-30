@@ -59,15 +59,32 @@ resource "azurerm_application_gateway" "this" {
   }
 
   backend_address_pool {
-    name = "default"
+    name         = "default"
+    ip_addresses = [local.haproxy_backend_ip]
+  }
+
+  probe {
+    name                                      = "argocd-probe"
+    protocol                                  = "Http"
+    host                                      = "argocd.vessyinc.com"
+    path                                      = "/healthz"
+    interval                                  = 30
+    timeout                                   = 20
+    unhealthy_threshold                       = 3
+    pick_host_name_from_backend_http_settings = false
+
+    match {
+      status_code = ["200-399"]
+    }
   }
 
   backend_http_settings {
-    name                  = "https-settings"
+    name                  = "http-settings"
     cookie_based_affinity = "Disabled"
-    port                  = 443
-    protocol              = "Https"
+    port                  = 80
+    protocol              = "Http"
     request_timeout       = 20
+    probe_name            = "argocd-probe"
   }
 
   http_listener {
@@ -75,7 +92,7 @@ resource "azurerm_application_gateway" "this" {
     frontend_ip_configuration_name = "Frontend-Public-IP"
     frontend_port_name             = "port-443"
     protocol                       = "Https"
-    ssl_certificate_name           = "cert-app-gw-tls"
+    ssl_certificate_name           = "argo-app-gw-tls"
     host_name                      = "argocd.vessyinc.com"
   }
 
@@ -84,7 +101,7 @@ resource "azurerm_application_gateway" "this" {
     rule_type                  = "Basic"
     http_listener_name         = "listener-https"
     backend_address_pool_name  = "default"
-    backend_http_settings_name = "https-settings"
+    backend_http_settings_name = "http-settings"
     priority                   = 100
   }
 }
