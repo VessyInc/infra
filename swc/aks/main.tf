@@ -34,6 +34,7 @@ module "control_plane_identity" {
     kubelet_identity_operator = {
       scope                            = module.kubelet_identity.id
       role_definition_name             = "Managed Identity Operator"
+      principal_type                   = "ServicePrincipal"
       skip_service_principal_aad_check = true
     }
   }
@@ -52,6 +53,7 @@ module "kubelet_identity" {
     acr_pull = {
       scope                            = data.azurerm_container_registry.acr.id
       role_definition_name             = "AcrPull"
+      principal_type                   = "ServicePrincipal"
       skip_service_principal_aad_check = true
     }
   }
