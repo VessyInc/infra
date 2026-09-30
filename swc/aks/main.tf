@@ -110,7 +110,7 @@ module "aks" {
     max_count                    = 2
     node_count                   = 1
     max_pods                     = 50
-    only_critical_addons_enabled = true 
+    only_critical_addons_enabled = true
     os_disk_type                 = "Managed"
     os_sku                       = "AzureLinux"
     type                         = "VirtualMachineScaleSets"
@@ -124,23 +124,23 @@ module "aks" {
 
   node_pools = {
     worker001 = {
-        name                 = "worker001"
-        mode                 = "User"
-        vm_size              = "Standard_B2s_v2"
-        os_type              = "Linux"
-        os_sku               = "AzureLinux"
-        os_disk_type         = "Managed"
-        auto_scaling_enabled = true
-        min_count            = 1
-        max_count            = 2
-        max_pods             = 110
-        vnet_subnet_id       = data.azurerm_subnet.aks.id
-        temporary_name_for_rotation = "worker001tmp" 
+      name                        = "worker001"
+      mode                        = "User"
+      vm_size                     = "Standard_B2s_v2"
+      os_type                     = "Linux"
+      os_sku                      = "AzureLinux"
+      os_disk_type                = "Managed"
+      auto_scaling_enabled        = true
+      min_count                   = 1
+      max_count                   = 2
+      max_pods                    = 110
+      vnet_subnet_id              = data.azurerm_subnet.aks.id
+      temporary_name_for_rotation = "worker001tmp"
 
-        upgrade_settings = {
-          max_surge = "50%"
-        }
+      upgrade_settings = {
+        max_surge = "50%"
       }
+    }
   }
 
   network_profile = {
@@ -158,7 +158,7 @@ module "aks" {
 
   role_based_access_control_enabled = true
   local_account_disabled            = true
-  
+
   azure_active_directory_role_based_access_control = {
     admin_group_object_ids = ["26c170fc-3976-46be-95a7-dff9e9533455"]
     azure_rbac_enabled     = false
@@ -205,6 +205,7 @@ module "aks" {
 
   upgrade_override = {
     force_upgrade_enabled = false
+    effective_until       = "2030-10-20T00:00:00Z"
   }
 
   node_resource_group_role_assignments = {}
