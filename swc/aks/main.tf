@@ -31,38 +31,24 @@ module "control_plane_identity" {
       role_definition_name             = "Private DNS Zone Contributor"
       skip_service_principal_aad_check = false
     }
+    kubelet_identity_operator = {
+      scope                            = module.workload_uais["kubelet"].id
+      role_definition_name             = "Managed Identity Operator"
+      skip_service_principal_aad_check = true
+    }
   }
 }
 
-module "workload_identity" {
-  source = "github.com/VessyInc/modules//azurerm-user-assigned-identity?ref=v4.0.3"
+module "workload_uais" {
+  source   = "github.com/VessyInc/modules//azurerm-user-assigned-identity?ref=v4.0.3"
+  for_each = local.workload_uais
 
-  name                = "uai-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-workload"
+  name                = "uai-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-${each.key}"
   location            = local.common.location
   resource_group_name = module.resource_group.name
-  # add one entry per workload once a real namespace/service account exists, e.g.:
-  # app = {
-  #   issuer   = module.aks.oidc_issuer_url
-  #   subject  = "system:serviceaccount:<namespace>:<service-account>"
-  #   audience = ["api://AzureADTokenExchange"]
-  #   name     = "app"
-  # }
-  federated_identity_credentials = {}
 
-  # Key Vault lives in the dedicated swc/central-kv stack; pods reach it through
-  # this identity via workload identity federation
-  role_assignments = {
-    kv_reader = {
-      scope                            = data.azurerm_key_vault.central_kv.id
-      role_definition_name             = "Reader"
-      skip_service_principal_aad_check = false
-    }
-    kv_secrets_user = {
-      scope                            = data.azurerm_key_vault.central_kv.id
-      role_definition_name             = "Key Vault Secrets User"
-      skip_service_principal_aad_check = false
-    }
-  }
+  federated_identity_credentials = each.value.federated_identity_credentials
+  role_assignments               = each.value.role_assignments
 }
 
 module "aks" {
@@ -89,6 +75,12 @@ module "aks" {
     identity_ids = [module.control_plane_identity.id]
   }
 
+  kubelet_identity = {
+    client_id                 = module.workload_uais["kubelet"].client_id
+    object_id                 = module.workload_uais["kubelet"].principal_id
+    user_assigned_identity_id = module.workload_uais["kubelet"].id
+  }
+
   default_node_pool = {
     name                         = "system"
     vm_size                      = "Standard_B2s_v2"
@@ -98,7 +90,7 @@ module "aks" {
     max_count                    = 2
     node_count                   = 1
     max_pods                     = 50
-    only_critical_addons_enabled = true # keeps workloads off the system pool; add workload pools via node_pools
+    only_critical_addons_enabled = true 
     os_disk_type                 = "Managed"
     os_sku                       = "AzureLinux"
     type                         = "VirtualMachineScaleSets"
@@ -201,15 +193,17 @@ module "aks" {
   depends_on = [module.control_plane_identity]
 }
 
-module "workload_uais" {
-  source   = "github.com/VessyInc/modules//azurerm-user-assigned-identity?ref=v4.0.3"
-  for_each = local.workload_uais
-
-  name                = "uai-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-${each.key}"
-  location            = local.common.location
-  resource_group_name = module.resource_group.name
-
-  federated_identity_credentials = each.value.federated_identity_credentials
-  role_assignments               = each.value.role_assignments
+moved {
+  from = azurerm_role_assignment.control_plane_can_use_kubelet_identity
+  to   = module.control_plane_identity.azurerm_role_assignment.this["kubelet_identity_operator"]
 }
 
+moved {
+  from = module.kubelet_identity.azurerm_user_assigned_identity.this
+  to   = module.workload_uais["kubelet"].azurerm_user_assigned_identity.this
+}
+
+moved {
+  from = module.kubelet_identity.azurerm_role_assignment.this["acr_pull"]
+  to   = module.workload_uais["kubelet"].azurerm_role_assignment.this["acr_pull"]
+}
