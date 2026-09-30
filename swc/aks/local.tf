@@ -25,11 +25,17 @@ locals {
   workload_uais = {
     argocd = {
       federated_identity_credentials = {
-        argocd = {
+        argocd-application-controller = {
           issuer   = module.aks.oidc_issuer_url
           subject  = "system:serviceaccount:argocd:argocd-application-controller"
           audience = ["api://AzureADTokenExchange"]
-          name     = "argocd"
+          name     = "argocd-application-controller"
+        }
+        argocd-server = {
+          issuer   = module.aks.oidc_issuer_url
+          subject  = "system:serviceaccount:argocd:argocd-server"
+          audience = ["api://AzureADTokenExchange"]
+          name     = "argocd-server"
         }
       }
       role_assignments = {
