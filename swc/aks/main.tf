@@ -149,11 +149,11 @@ module "aks" {
     network_data_plane  = "cilium"
     network_policy      = "cilium"
     load_balancer_sku   = "standard"
-    outbound_type       = "userDefinedRouting"
-    pod_cidr            = "192.168.0.0/16" # does not overlap the 10.0.0.0/8 vnet
-    service_cidr        = "172.16.0.0/16"  # does not overlap the vnet or pod_cidr
-    dns_service_ip      = "172.16.0.10"
-    ip_versions         = ["IPv4"]
+    outbound_type  = "loadBalancer"
+    pod_cidr       = "192.168.0.0/16" # does not overlap the 10.0.0.0/8 vnet
+    service_cidr   = "172.16.0.0/16"  # does not overlap the vnet or pod_cidr
+    dns_service_ip = "172.16.0.10"
+    ip_versions    = ["IPv4"]
   }
 
   role_based_access_control_enabled = true
@@ -212,9 +212,4 @@ module "aks" {
   role_assignments                     = {}
 
   depends_on = [module.control_plane_identity]
-}
-
-moved {
-  from = azurerm_role_assignment.control_plane_can_use_kubelet_identity
-  to   = module.control_plane_identity.azurerm_role_assignment.this["kubelet_identity_operator"]
 }
