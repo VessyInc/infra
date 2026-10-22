@@ -39,6 +39,15 @@ module "key_vault" {
         name                 = "psc-${local.common.location_shortcode}-${local.common.uniqueidentifier}-${local.appname}-kv"
         subresource_names    = ["vault"]
       }
+      # Without this the endpoint is created but nothing registers the vault's A
+      # record in privatelink.vaultcore.azure.net. That zone is linked to the
+      # VNet, so it answers authoritatively for the name the public FQDN CNAMEs
+      # to - an empty zone returns NXDOMAIN instead of letting the lookup fall
+      # through to the public IP, leaving the vault unresolvable from the cluster.
+      private_dns_zone_group = {
+        name                 = "default"
+        private_dns_zone_ids = [data.azurerm_private_dns_zone.central_kv.id]
+      }
     }
   }
 
