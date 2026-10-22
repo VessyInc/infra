@@ -23,7 +23,7 @@ module "mongo_cluster" {
   high_availability_mode = "Disabled"
 
   authentication_methods = ["NativeAuth"]
-  administrator_username = "wekanadmin"
+  administrator_username = local.mongo_administrator_username
   administrator_password = data.azurerm_key_vault_secret.mongo_administrator_password.value
 
   public_network_access = "Disabled"
@@ -46,6 +46,27 @@ module "mongo_cluster" {
       }
     }
   }
+
+  role_assignments = {}
+}
+
+module "mongo_connection_string_secret" {
+  source = "github.com/VessyInc/modules//azurerm-key-vault/modules/azurerm-key-vault-secret?ref=v4.0.6"
+
+  name = "${local.appname}-mongo-connection-string"
+  #wekan-mongo-connection-string
+  key_vault_id = data.azurerm_key_vault.central_kv.id
+  content_type = "text/plain"
+
+  # Consumed from the cluster by the External Secrets Operator, which projects
+  # it into the wekan namespace as the MONGO_URL key of secret wekan-mongodb.
+  # Read access comes from the Key Vault Secrets User assignment on
+  # uai-swc-vessyinc-aks-wekan-external-secrets (see swc/aks/local.tf).
+  value_wo = local.mongo_url
+
+  # Bump when the Mongo administrator password is rotated - value_wo is
+  # write-only, so Terraform cannot detect drift on its own.
+  value_wo_version = 1
 
   role_assignments = {}
 }

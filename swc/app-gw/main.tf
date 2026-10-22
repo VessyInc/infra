@@ -58,6 +58,12 @@ resource "azurerm_application_gateway" "this" {
     password = data.azurerm_key_vault_secret.argocd_tls_pfx_password.value
   }
 
+  ssl_certificate {
+    name     = "wekan-app-gw-tls"
+    data     = data.azurerm_key_vault_secret.wekan_tls_pfx.value
+    password = data.azurerm_key_vault_secret.wekan_tls_pfx_password.value
+  }
+
   backend_address_pool {
     name         = "default"
     ip_addresses = [local.haproxy_backend_ip]
@@ -87,6 +93,35 @@ resource "azurerm_application_gateway" "this" {
     probe_name            = "argocd-probe"
   }
 
+  probe {
+    name     = "wekan-probe"
+    protocol = "Http"
+    host     = "wekan.vessyinc.com"
+    # Wekan has no health endpoint; / answers 302 to the sign-in page once the
+    # Meteor bundle is serving, which the 200-399 match below accepts.
+    path                                      = "/"
+    interval                                  = 30
+    timeout                                   = 20
+    unhealthy_threshold                       = 3
+    pick_host_name_from_backend_http_settings = false
+
+    match {
+      status_code = ["200-399"]
+    }
+  }
+
+  backend_http_settings {
+    name                  = "http-settings-wekan"
+    cookie_based_affinity = "Disabled"
+    port                  = 80
+    protocol              = "Http"
+    # Not the 20s used for Argo CD: this timeout also caps WebSocket lifetime,
+    # and Wekan holds a DDP/sockjs connection open for the whole session, so a
+    # short value makes the board silently stop receiving live updates.
+    request_timeout = 300
+    probe_name      = "wekan-probe"
+  }
+
   http_listener {
     name                           = "listener-https"
     frontend_ip_configuration_name = "Frontend-Public-IP"
@@ -96,6 +131,18 @@ resource "azurerm_application_gateway" "this" {
     host_name                      = "argocd.vessyinc.com"
   }
 
+  # Multi-site hosting: a second listener on the same public frontend and port,
+  # separated by SNI host name. The Basic SKU allows 5 listeners, 5 rules and 5
+  # backend settings, so this leaves headroom for three more sites.
+  http_listener {
+    name                           = "listener-https-wekan"
+    frontend_ip_configuration_name = "Frontend-Public-IP"
+    frontend_port_name             = "port-443"
+    protocol                       = "Https"
+    ssl_certificate_name           = "wekan-app-gw-tls"
+    host_name                      = "wekan.vessyinc.com"
+  }
+
   request_routing_rule {
     name                       = "rule-https"
     rule_type                  = "Basic"
@@ -103,5 +150,16 @@ resource "azurerm_application_gateway" "this" {
     backend_address_pool_name  = "default"
     backend_http_settings_name = "http-settings"
     priority                   = 100
+  }
+
+  # Same HAProxy backend pool as Argo CD - HAProxy fans out on Host header, so
+  # only the listener and the probe host differ.
+  request_routing_rule {
+    name                       = "rule-https-wekan"
+    rule_type                  = "Basic"
+    http_listener_name         = "listener-https-wekan"
+    backend_address_pool_name  = "default"
+    backend_http_settings_name = "http-settings-wekan"
+    priority                   = 110
   }
 }

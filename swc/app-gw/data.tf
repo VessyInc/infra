@@ -21,3 +21,13 @@ data "azurerm_key_vault_secret" "argocd_tls_pfx_password" {
   name         = "argocd-tls-pfx-password"
   key_vault_id = data.azurerm_key_vault.central_kv.id
 }
+
+data "azurerm_key_vault_secret" "wekan_tls_pfx" {
+  name         = "wekan-tls-pfx"
+  key_vault_id = data.azurerm_key_vault.central_kv.id
+}
+
+data "azurerm_key_vault_secret" "wekan_tls_pfx_password" {
+  name         = "wekan-tls-pfx-password"
+  key_vault_id = data.azurerm_key_vault.central_kv.id
+}

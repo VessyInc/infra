@@ -26,5 +26,23 @@ locals {
         }
       }
     }
+
+    wekan = {
+      federated_identity_credentials = {
+        wekan-external-secrets = {
+          issuer   = module.aks.oidc_issuer_url
+          subject  = "system:serviceaccount:wekan:wekan-external-secrets"
+          audience = ["api://AzureADTokenExchange"]
+          name     = "wekan-external-secrets"
+        }
+      }
+      role_assignments = {
+        key_vault_secrets_user = {
+          scope                            = data.azurerm_key_vault.central_kv.id
+          role_definition_name             = "Key Vault Secrets User"
+          skip_service_principal_aad_check = false
+        }
+      }
+    }
   }
 }
