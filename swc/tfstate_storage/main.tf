@@ -75,5 +75,9 @@ module "storage_account" {
       name                  = "central-kv"
       container_access_type = "private"
     }
+    wekan = {
+      name                  = "wekan"
+      container_access_type = "private"
+    }
   }
 }

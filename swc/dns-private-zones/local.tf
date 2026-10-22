@@ -12,5 +12,8 @@ locals {
     internal-vessyinc-com = {
       zone_name = "internal.vessyinc.com"
     }
+    mongo-vcore = {
+      zone_name = "privatelink.mongocluster.cosmos.azure.com"
+    }
   }
 }

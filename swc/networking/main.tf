@@ -43,6 +43,10 @@ module "virtual_network" {
         service_name = "Microsoft.ContainerInstance/containerGroups"
         actions      = ["Microsoft.Network/virtualNetworks/subnets/action"]
       }
+    },
+    {
+      name             = "snet-${local.common.location_shortcode}-${local.common.uniqueidentifier}-wekan"
+      address_prefixes = ["10.4.0.0/16"]
     }
   ]
 
