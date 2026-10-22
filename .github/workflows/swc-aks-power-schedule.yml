@@ -1,0 +1,144 @@
+name: swc-aks-power-schedule
+
+on:
+  # All crons are UTC (GitHub Actions has no timezone support).
+  schedule:
+    # Every day at 00:00 - stop.
+    - cron: '0 0 * * *'
+    # Mon-Sat at 08:00 - start.
+    - cron: '0 8 * * 1-6'
+    # Sunday at 01:00 - start early, ahead of the 02:00 auto-upgrade
+    # maintenance window configured in swc/aks/main.tf.
+    - cron: '0 1 * * 0'
+    # Sunday at 03:00 - stop again once the upgrade window has run.
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Power action to run against the cluster'
+        type: choice
+        required: true
+        options:
+          - start
+          - stop
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AZURE_TENANT_ID: 9cdec346-9087-4758-a5a5-2144a3ed72d4
+  AKS_NAME: aks-swc-vessyinc-aks
+  AKS_RESOURCE_GROUP: rg-swc-vessyinc-aks
+
+# Never run two power actions at once; queue them instead of cancelling, so a
+# slow stop is always followed by the start that was scheduled after it.
+concurrency:
+  group: swc-aks-power-schedule
+  cancel-in-progress: false
+
+jobs:
+  power:
+    name: 'Set cluster power state'
+    runs-on: ubuntu-latest
+    # The SPN's federated credential matches
+    # `repo:VessyInc/infra:environment:*`, so an environment must be set for
+    # the OIDC login to work. tf-build is used rather than tf-deploy because
+    # tf-deploy has required reviewers, which would gate every scheduled run.
+    environment: tf-build
+    timeout-minutes: 60
+
+    steps:
+    - name: Resolve power action
+      id: resolve
+      run: |
+        set -euo pipefail
+
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          action='${{ inputs.action }}'
+        else
+          case '${{ github.event.schedule }}' in
+            '0 0 * * *')   action=stop  ;;  # daily midnight stop
+            '0 8 * * 1-6') action=start ;;  # Mon-Sat morning start
+            '0 1 * * 0')   action=start ;;  # Sunday pre-upgrade start
+            '0 3 * * 0')   action=stop  ;;  # Sunday post-upgrade stop
+            *)
+              echo "::error::No power action mapped for cron '${{ github.event.schedule }}'"
+              exit 1
+              ;;
+          esac
+        fi
+
+        echo "Resolved action: $action"
+        echo "action=$action" >> "$GITHUB_OUTPUT"
+
+    - name: az Login
+      uses: Azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_SPN_ID }}
+        tenant-id: ${{ env.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Apply power action
+      env:
+        ACTION: ${{ steps.resolve.outputs.action }}
+      run: |
+        set -euo pipefail
+
+        case "$ACTION" in
+          start) desired=Running ;;
+          stop)  desired=Stopped ;;
+          *) echo "::error::Unknown action '$ACTION'"; exit 1 ;;
+        esac
+
+        read_state() {
+          az aks show \
+            --name "$AKS_NAME" \
+            --resource-group "$AKS_RESOURCE_GROUP" \
+            --query '{power: powerState.code, provisioning: provisioningState}' \
+            -o json
+        }
+
+        state=$(read_state)
+        power=$(jq -r '.power' <<< "$state")
+        provisioning=$(jq -r '.provisioning' <<< "$state")
+        echo "Current: power=$power provisioning=$provisioning (desired power=$desired)"
+
+        # Azure rejects start/stop while another operation is in flight - most
+        # likely the Sunday 02:00 auto-upgrade. Wait for the cluster to settle
+        # rather than failing immediately.
+        deadline=$(( $(date +%s) + 2400 ))
+        while [ "$provisioning" != "Succeeded" ] && [ "$provisioning" != "Failed" ]; do
+          if [ "$(date +%s)" -ge "$deadline" ]; then
+            echo "::error::Cluster still in '$provisioning' after 40m; skipping $ACTION."
+            exit 1
+          fi
+          echo "Cluster is '$provisioning'; waiting 60s for it to settle..."
+          sleep 60
+          state=$(read_state)
+          power=$(jq -r '.power' <<< "$state")
+          provisioning=$(jq -r '.provisioning' <<< "$state")
+        done
+
+        if [ "$power" = "$desired" ]; then
+          echo "Cluster is already $desired - nothing to do."
+          echo "AKS \`$AKS_NAME\` already **$desired** - no action taken." >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+
+        echo "Running az aks $ACTION..."
+        az aks "$ACTION" \
+          --name "$AKS_NAME" \
+          --resource-group "$AKS_RESOURCE_GROUP"
+
+        final=$(az aks show \
+          --name "$AKS_NAME" \
+          --resource-group "$AKS_RESOURCE_GROUP" \
+          --query 'powerState.code' -o tsv)
+        echo "Cluster power state is now: $final"
+        echo "AKS \`$AKS_NAME\`: \`$ACTION\` -> **$final**" >> "$GITHUB_STEP_SUMMARY"
+
+        if [ "$final" != "$desired" ]; then
+          echo "::error::Expected power state '$desired' but cluster reports '$final'."
+          exit 1
+        fi
