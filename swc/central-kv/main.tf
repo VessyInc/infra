@@ -7,7 +7,7 @@ module "resource_group" {
 }
 
 module "key_vault" {
-  source = "github.com/VessyInc/modules//azurerm-key-vault?ref=v4.0.2"
+  source = "github.com/VessyInc/modules//azurerm-key-vault?ref=v4.0.7"
 
   name = "kv${local.common.location_shortcode}${local.common.uniqueidentifier}${local.appname}"
   #kvswcvessyinccentral-kv
