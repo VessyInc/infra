@@ -20,14 +20,14 @@ module "key_vault" {
   access_policies                 = {}
   purge_protection_enabled        = true
   soft_delete_retention_days      = 90
-  public_network_access_enabled   = false
+  public_network_access_enabled   = true
   enabled_for_deployment          = false
   enabled_for_disk_encryption     = false
   enabled_for_template_deployment = false
 
   network_acls = {
     bypass         = "AzureServices"
-    default_action = "Deny"
+    default_action = "Allow"
   }
 
   private_endpoints = {
